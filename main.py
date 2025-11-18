@@ -65,23 +65,41 @@ class TikTokThread(QThread):
     async def _run_client(self):
         """Run the TikTok client with proper event loop handling"""
         try:
-            # Start the client
-            await self.tiktok_manager.client.start()
+            # Start the client's websocket connection
+            # This creates background tasks for processing messages
+            logger.info("Starting TikTok Live client...")
+
+            # Create a task for the client to run in the background
+            client_task = asyncio.create_task(self.tiktok_manager.client.start())
+
+            # Give it a moment to establish connection
+            await asyncio.sleep(2)
 
             # Mark as connected
             self.tiktok_manager.is_connected = True
             self.connected.emit()
-            logger.info("TikTok client started successfully")
+            logger.info("TikTok client running - listening for events")
 
-            # Keep the event loop running while connected
-            while self.running and self.tiktok_manager.is_connected:
-                await asyncio.sleep(0.1)
+            # Keep the event loop running to process websocket messages
+            # The client_task will continue processing messages in the background
+            try:
+                while self.running and self.tiktok_manager.is_connected:
+                    await asyncio.sleep(0.5)
+            finally:
+                # Cancel the client task when stopping
+                if not client_task.done():
+                    client_task.cancel()
+                    try:
+                        await client_task
+                    except asyncio.CancelledError:
+                        pass
 
         except Exception as e:
             logger.error(f"Error running client: {e}")
             raise
         finally:
             # Disconnect on exit
+            logger.info("Disconnecting from TikTok Live...")
             if self.tiktok_manager.is_connected:
                 await self.tiktok_manager.disconnect()
 
