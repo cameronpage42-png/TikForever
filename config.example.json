@@ -1,0 +1,97 @@
+{
+  "tiktok_username": "your_username_here",
+  "window_geometry": {
+    "width": 900,
+    "height": 700,
+    "x": 100,
+    "y": 100
+  },
+  "mappings": [
+    {
+      "event_type": "comment",
+      "trigger": "jump",
+      "action": "keyboard",
+      "key": "space",
+      "duration": 0.1,
+      "cooldown": 0.5,
+      "enabled": true,
+      "description": "Jump command - press spacebar"
+    },
+    {
+      "event_type": "comment",
+      "trigger": "left",
+      "action": "keyboard",
+      "key": "left",
+      "duration": 0.2,
+      "cooldown": 0.3,
+      "enabled": true,
+      "description": "Move left"
+    },
+    {
+      "event_type": "comment",
+      "trigger": "right",
+      "action": "keyboard",
+      "key": "right",
+      "duration": 0.2,
+      "cooldown": 0.3,
+      "enabled": true,
+      "description": "Move right"
+    },
+    {
+      "event_type": "comment",
+      "trigger": "up",
+      "action": "keyboard",
+      "key": "up",
+      "duration": 0.2,
+      "cooldown": 0.3,
+      "enabled": true,
+      "description": "Move up"
+    },
+    {
+      "event_type": "comment",
+      "trigger": "down",
+      "action": "keyboard",
+      "key": "down",
+      "duration": 0.2,
+      "cooldown": 0.3,
+      "enabled": true,
+      "description": "Move down"
+    },
+    {
+      "event_type": "comment",
+      "trigger": "attack",
+      "action": "keyboard",
+      "key": "ctrl",
+      "duration": 0.1,
+      "cooldown": 1.0,
+      "enabled": true,
+      "description": "Attack command"
+    },
+    {
+      "event_type": "gift",
+      "trigger": "Rose",
+      "action": "controller",
+      "button": "a",
+      "duration": 0.1,
+      "cooldown": 2.0,
+      "enabled": true,
+      "description": "Rose gift triggers A button"
+    },
+    {
+      "event_type": "like",
+      "trigger": "",
+      "action": "keyboard",
+      "key": "l",
+      "duration": 0.05,
+      "cooldown": 5.0,
+      "enabled": false,
+      "description": "Likes trigger L key (disabled by default)"
+    }
+  ],
+  "settings": {
+    "auto_reconnect": true,
+    "log_events": true,
+    "sound_enabled": false,
+    "global_cooldown": 0.1
+  }
+}
