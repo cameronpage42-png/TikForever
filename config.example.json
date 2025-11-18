@@ -201,6 +201,7 @@
     "auto_reconnect": true,
     "log_events": true,
     "sound_enabled": false,
-    "global_cooldown": 0.1
+    "global_cooldown": 0.1,
+    "enable_controller": true
   }
 }

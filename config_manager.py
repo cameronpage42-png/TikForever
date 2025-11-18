@@ -79,7 +79,8 @@ class ConfigManager:
             'auto_reconnect': True,
             'log_events': True,
             'sound_enabled': False,
-            'global_cooldown': 0.1
+            'global_cooldown': 0.1,
+            'enable_controller': True
         }
     }
 
@@ -242,3 +243,11 @@ class ConfigManager:
         """Reset configuration to defaults"""
         self.config = self.DEFAULT_CONFIG.copy()
         logger.info("Reset configuration to defaults")
+
+    def get_controller_enabled(self) -> bool:
+        """Get whether virtual controller is enabled"""
+        return self.get_setting('enable_controller', True)
+
+    def set_controller_enabled(self, enabled: bool):
+        """Set whether virtual controller is enabled"""
+        self.set_setting('enable_controller', enabled)

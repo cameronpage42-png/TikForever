@@ -118,7 +118,11 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.config = ConfigManager()
-        self.input_simulator = InputSimulator()
+
+        # Load controller setting and initialize input simulator
+        controller_enabled = self.config.get_controller_enabled()
+        self.input_simulator = InputSimulator(enable_controller=controller_enabled)
+
         self.obs_controller = OBSController()
         self.alert_server = AlertServer(port=8000)
         self.event_mapper = EventMapper(self.input_simulator, self.obs_controller, self.alert_server)
@@ -222,6 +226,36 @@ class MainWindow(QMainWindow):
         connection_layout.addWidget(self.status_label)
 
         layout.addWidget(connection_group)
+
+        # Settings group
+        settings_group = QGroupBox("Input Settings")
+        settings_layout = QVBoxLayout()
+        settings_group.setLayout(settings_layout)
+
+        # Virtual controller checkbox
+        self.controller_checkbox = QCheckBox("Enable Virtual Xbox 360 Controller")
+        self.controller_checkbox.setChecked(self.config.get_controller_enabled())
+        self.controller_checkbox.stateChanged.connect(self.on_controller_toggle)
+        self.controller_checkbox.setToolTip(
+            "Enable virtual Xbox 360 controller for gamepad button mappings.\n"
+            "Disable if you only need keyboard input or experience controller conflicts.\n"
+            "Requires application restart to take effect."
+        )
+        settings_layout.addWidget(self.controller_checkbox)
+
+        # Controller status
+        if self.input_simulator.gamepad:
+            controller_status = "✓ Virtual controller active"
+            status_color = "#4CAF50"
+        else:
+            controller_status = "✗ Virtual controller inactive"
+            status_color = "#f44336"
+
+        self.controller_status_label = QLabel(controller_status)
+        self.controller_status_label.setStyleSheet(f"QLabel {{ color: {status_color}; font-style: italic; padding-left: 20px; }}")
+        settings_layout.addWidget(self.controller_status_label)
+
+        layout.addWidget(settings_group)
 
         # Stats group
         stats_group = QGroupBox("Statistics")
@@ -818,6 +852,20 @@ class MainWindow(QMainWindow):
         if reply == QMessageBox.StandardButton.Yes:
             self.event_mapper.clear_mappings()
             self.refresh_mappings_table()
+
+    def on_controller_toggle(self, state):
+        """Handle virtual controller checkbox toggle"""
+        enabled = state == 2  # Qt.CheckState.Checked == 2
+        self.config.set_controller_enabled(enabled)
+        self.config.save()
+
+        # Show restart reminder
+        QMessageBox.information(
+            self,
+            "Restart Required",
+            "Please restart TikForever for the controller setting to take effect.\n\n"
+            f"Virtual controller will be {'enabled' if enabled else 'disabled'} on next start."
+        )
 
     def toggle_connection(self):
         """Toggle TikTok Live connection"""

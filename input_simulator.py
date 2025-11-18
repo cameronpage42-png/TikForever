@@ -27,18 +27,28 @@ logger = logging.getLogger(__name__)
 class InputSimulator:
     """Simulates keyboard and controller inputs"""
 
-    def __init__(self):
-        """Initialize input simulator"""
+    def __init__(self, enable_controller: bool = True):
+        """
+        Initialize input simulator
+
+        Args:
+            enable_controller: Whether to enable virtual Xbox 360 controller
+        """
         self.keyboard = KeyboardController()
         self.gamepad = None
+        self.controller_enabled = enable_controller
 
-        if VGAMEPAD_AVAILABLE:
+        if enable_controller and VGAMEPAD_AVAILABLE:
             try:
                 self.gamepad = vg.VX360Gamepad()
                 logger.info("Virtual Xbox 360 controller initialized")
             except Exception as e:
                 logger.error(f"Failed to initialize virtual controller: {e}")
                 self.gamepad = None
+        elif not enable_controller:
+            logger.info("Virtual controller disabled by user")
+        else:
+            logger.info("Virtual controller not available on this platform")
 
     def press_key(self, key_name: str, duration: float = 0.1):
         """
