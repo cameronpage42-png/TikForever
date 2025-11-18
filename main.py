@@ -67,6 +67,9 @@ class TikTokThread(QThread):
         try:
             # Start the client
             await self.tiktok_manager.client.start()
+
+            # Mark as connected
+            self.tiktok_manager.is_connected = True
             self.connected.emit()
             logger.info("TikTok client started successfully")
 
