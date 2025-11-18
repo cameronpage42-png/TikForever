@@ -30,7 +30,7 @@ class EventMapping:
         """
         self.event_type = mapping_data.get('event_type')  # comment, gift, like, share, follow
         self.trigger = mapping_data.get('trigger')  # e.g., comment text, gift name
-        self.action_type = mapping_data.get('action')  # keyboard, controller, obs
+        self.action_type = mapping_data.get('action')  # keyboard, controller, obs, obs_hotkey
         self.key = mapping_data.get('key')  # For keyboard
         self.button = mapping_data.get('button')  # For controller button
         self.joystick = mapping_data.get('joystick')  # For joystick movement
@@ -39,6 +39,7 @@ class EventMapping:
         self.obs_action = mapping_data.get('obs_action')  # show, hide, toggle, show_temp
         self.obs_scene = mapping_data.get('obs_scene')  # Scene name
         self.obs_source = mapping_data.get('obs_source')  # Source name
+        self.obs_hotkey = mapping_data.get('obs_hotkey')  # For obs_hotkey action (e.g., 'f13')
         self.duration = mapping_data.get('duration', 0.1)  # Action duration
         self.cooldown = mapping_data.get('cooldown', 0.5)  # Cooldown between triggers
         self.last_triggered = 0
@@ -97,6 +98,7 @@ class EventMapping:
             'obs_action': self.obs_action,
             'obs_scene': self.obs_scene,
             'obs_source': self.obs_source,
+            'obs_hotkey': self.obs_hotkey,
             'duration': self.duration,
             'cooldown': self.cooldown,
             'enabled': self.enabled,
@@ -249,6 +251,12 @@ class EventMapper:
                             mapping.duration
                         )
 
+            elif mapping.action_type == 'obs_hotkey':
+                # Trigger OBS/TikTok Live Studio via hotkey (works without WebSocket)
+                if mapping.obs_hotkey:
+                    logger.info(f"Triggering OBS hotkey: {mapping.obs_hotkey}")
+                    self.input_simulator.press_key(mapping.obs_hotkey, 0.1)
+
             user = event_data.get('user', 'Unknown')
             logger.info(f"Executed mapping for {user}: {mapping.event_type} -> {mapping.action_type}")
 
@@ -262,6 +270,8 @@ class EventMapper:
             'enabled': sum(1 for m in self.mappings if m.enabled),
             'disabled': sum(1 for m in self.mappings if not m.enabled),
             'keyboard': sum(1 for m in self.mappings if m.action_type == 'keyboard'),
-            'controller': sum(1 for m in self.mappings if m.action_type == 'controller')
+            'controller': sum(1 for m in self.mappings if m.action_type == 'controller'),
+            'obs': sum(1 for m in self.mappings if m.action_type == 'obs'),
+            'obs_hotkey': sum(1 for m in self.mappings if m.action_type == 'obs_hotkey')
         }
         return stats

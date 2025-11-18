@@ -287,7 +287,7 @@ class MainWindow(QMainWindow):
         row2 = QHBoxLayout()
         row2.addWidget(QLabel("Action:"))
         self.action_combo = QComboBox()
-        self.action_combo.addItems(["keyboard", "controller", "obs"])
+        self.action_combo.addItems(["keyboard", "controller", "obs", "obs_hotkey"])
         self.action_combo.currentTextChanged.connect(self.on_action_type_changed)
         row2.addWidget(self.action_combo)
 
@@ -325,6 +325,29 @@ class MainWindow(QMainWindow):
 
         self.obs_fields_widget.setVisible(False)  # Hidden by default
         add_layout.addWidget(self.obs_fields_widget)
+
+        # OBS Hotkey fields (hidden by default)
+        self.obs_hotkey_widget = QWidget()
+        obs_hotkey_layout = QVBoxLayout()
+        self.obs_hotkey_widget.setLayout(obs_hotkey_layout)
+
+        hotkey_info_label = QLabel(
+            "OBS Hotkey Mode - Works with TikTok Live Studio!\n"
+            "Set up hotkeys in OBS/TikTok Live Studio (F13-F24 recommended),\n"
+            "then enter the key here (e.g., 'f13', 'f14')"
+        )
+        hotkey_info_label.setStyleSheet("QLabel { color: #2196F3; font-style: italic; padding: 5px; }")
+        obs_hotkey_layout.addWidget(hotkey_info_label)
+
+        hotkey_input_layout = QHBoxLayout()
+        hotkey_input_layout.addWidget(QLabel("Hotkey:"))
+        self.obs_hotkey_input = QLineEdit()
+        self.obs_hotkey_input.setPlaceholderText("e.g., 'f13', 'f14', 'f15'")
+        hotkey_input_layout.addWidget(self.obs_hotkey_input)
+        obs_hotkey_layout.addLayout(hotkey_input_layout)
+
+        self.obs_hotkey_widget.setVisible(False)  # Hidden by default
+        add_layout.addWidget(self.obs_hotkey_widget)
 
         # Row 3: Duration and cooldown
         row3 = QHBoxLayout()
@@ -603,9 +626,15 @@ class MainWindow(QMainWindow):
         """Handle action type change"""
         if action_type == 'obs':
             self.obs_fields_widget.setVisible(True)
+            self.obs_hotkey_widget.setVisible(False)
+            self.input_field.setVisible(False)
+        elif action_type == 'obs_hotkey':
+            self.obs_fields_widget.setVisible(False)
+            self.obs_hotkey_widget.setVisible(True)
             self.input_field.setVisible(False)
         else:
             self.obs_fields_widget.setVisible(False)
+            self.obs_hotkey_widget.setVisible(False)
             self.input_field.setVisible(True)
 
     def refresh_mappings_table(self):
@@ -619,10 +648,12 @@ class MainWindow(QMainWindow):
             self.mappings_table.setItem(i, 1, QTableWidgetItem(mapping.get('trigger', '')))
             self.mappings_table.setItem(i, 2, QTableWidgetItem(mapping.get('action', '')))
 
-            # Determine input field - for OBS show scene/source, otherwise show key/button
+            # Determine input field - for OBS show scene/source, for obs_hotkey show hotkey, otherwise show key/button
             if mapping.get('action') == 'obs':
                 obs_info = f"{mapping.get('obs_action', '')} {mapping.get('obs_scene', '')}/{mapping.get('obs_source', '')}"
                 input_val = obs_info.strip()
+            elif mapping.get('action') == 'obs_hotkey':
+                input_val = f"Hotkey: {mapping.get('obs_hotkey', '')}"
             else:
                 input_val = mapping.get('key') or mapping.get('button') or mapping.get('joystick') or mapping.get('trigger_name') or ''
             self.mappings_table.setItem(i, 3, QTableWidgetItem(str(input_val)))
@@ -655,7 +686,7 @@ class MainWindow(QMainWindow):
 
         # Determine input type based on action
         if action == 'obs':
-            # OBS action
+            # OBS action via WebSocket
             obs_action = self.obs_action_combo.currentText()
             obs_scene = self.obs_scene_input.text().strip()
             obs_source = self.obs_source_input.text().strip()
@@ -667,6 +698,16 @@ class MainWindow(QMainWindow):
             mapping_data['obs_action'] = obs_action
             mapping_data['obs_scene'] = obs_scene
             mapping_data['obs_source'] = obs_source
+
+        elif action == 'obs_hotkey':
+            # OBS action via hotkey (works with TikTok Live Studio)
+            obs_hotkey = self.obs_hotkey_input.text().strip().lower()
+
+            if not obs_hotkey:
+                QMessageBox.warning(self, "Error", "Please enter a hotkey (e.g., f13, f14)")
+                return
+
+            mapping_data['obs_hotkey'] = obs_hotkey
 
         else:
             # Keyboard or controller action
@@ -689,6 +730,7 @@ class MainWindow(QMainWindow):
         self.input_field.clear()
         self.obs_scene_input.clear()
         self.obs_source_input.clear()
+        self.obs_hotkey_input.clear()
 
     def remove_mapping(self):
         """Remove selected mapping"""

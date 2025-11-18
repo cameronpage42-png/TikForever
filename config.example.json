@@ -10,7 +10,8 @@
     "enabled": false,
     "host": "localhost",
     "port": 4455,
-    "password": ""
+    "password": "",
+    "note": "OBS WebSocket - Only works with OBS Studio 28+, not TikTok Live Studio. For TikTok Live Studio, use obs_hotkey action type instead (see mappings below)."
   },
   "mappings": [
     {
@@ -128,6 +129,36 @@
       "cooldown": 3.0,
       "enabled": false,
       "description": "Show share alert for 4 seconds (OBS)"
+    },
+    {
+      "event_type": "follow",
+      "trigger": "",
+      "action": "obs_hotkey",
+      "obs_hotkey": "f13",
+      "duration": 0.1,
+      "cooldown": 2.0,
+      "enabled": false,
+      "description": "Follow alert via hotkey F13 (Works with TikTok Live Studio!)"
+    },
+    {
+      "event_type": "gift",
+      "trigger": "Rose",
+      "action": "obs_hotkey",
+      "obs_hotkey": "f14",
+      "duration": 0.1,
+      "cooldown": 3.0,
+      "enabled": false,
+      "description": "Rose gift alert via hotkey F14 (Works with TikTok Live Studio!)"
+    },
+    {
+      "event_type": "share",
+      "trigger": "",
+      "action": "obs_hotkey",
+      "obs_hotkey": "f15",
+      "duration": 0.1,
+      "cooldown": 3.0,
+      "enabled": false,
+      "description": "Share alert via hotkey F15 (Works with TikTok Live Studio!)"
     }
   ],
   "settings": {

@@ -1,15 +1,34 @@
-# OBS WebSocket Setup Guide for TikForever
+# OBS/TikTok Live Studio Integration Guide for TikForever
 
-This guide shows you how to set up OBS WebSocket so TikForever can control sources in TikTok Live Studio or OBS.
+This guide shows you how to connect TikForever with OBS Studio and TikTok Live Studio to control sources and trigger visual effects.
 
-## What is OBS WebSocket?
+## Two Integration Methods
 
-OBS WebSocket allows external applications (like TikForever) to control OBS/TikTok Live Studio remotely. This enables features like:
+TikForever supports **two methods** for controlling OBS/TikTok Live Studio:
+
+### Method 1: WebSocket (OBS Studio Only) ✅
+- **Works with**: OBS Studio 28+
+- **Requires**: OBS WebSocket enabled
+- **Features**: Direct control of sources (show, hide, toggle, show_temp)
+- **Setup**: Moderate (see below)
+
+### Method 2: Hotkeys (OBS Studio + TikTok Live Studio) ✅ RECOMMENDED FOR TIKTOK LIVE STUDIO
+- **Works with**: OBS Studio AND TikTok Live Studio
+- **Requires**: Only hotkey configuration in streaming software
+- **Features**: Trigger any action you can assign to a hotkey
+- **Setup**: Easy (just assign hotkeys and configure TikForever)
+- **Note**: This is how similar apps work with TikTok Live Studio!
+
+**💡 For TikTok Live Studio users**: Use Method 2 (Hotkeys) as TikTok Live Studio does not expose WebSocket settings.
+
+---
+
+## What Can You Do?
+
+Both methods enable features like:
 - 📺 Show/hide sources when viewers follow, gift, or comment
 - 🎬 Trigger animations or overlays
 - 🎮 Make your stream interactive
-
-**Note**: TikTok Live Studio is built on OBS, so this works with both!
 
 ## Prerequisites
 
@@ -115,9 +134,154 @@ else:
     print("Failed to connect")
 ```
 
-## OBS Action Types
+---
 
-TikForever supports several OBS actions:
+## Method 2: Hotkey Integration (Works with TikTok Live Studio!)
+
+This method works with **both OBS Studio and TikTok Live Studio** by triggering hotkeys you configure in your streaming software.
+
+### Why Use Hotkeys?
+
+✅ **Works with TikTok Live Studio** (which doesn't expose WebSocket)
+✅ **Simpler setup** - no WebSocket configuration needed
+✅ **More flexible** - can trigger ANY action you can assign to a hotkey
+✅ **Reliable** - same method used by apps like TikFinity
+
+### How It Works
+
+1. You assign hotkeys in OBS/TikTok Live Studio (e.g., F13 = Show Follow Alert)
+2. TikForever simulates pressing those keys when events happen
+3. Your streaming software responds to the hotkey just like you pressed it
+
+### Step 1: Set Up Hotkeys in TikTok Live Studio
+
+#### For TikTok Live Studio:
+
+1. Open **TikTok Live Studio**
+2. Go to **Settings** → **Hotkeys**
+3. Find "Show/Hide Source" or similar options
+4. Assign function keys to sources:
+   - **F13**: Show Follow Alert
+   - **F14**: Show Gift Alert
+   - **F15**: Show Share Alert
+   - **F16**: Show Like Effect
+   - etc.
+
+**💡 Tip**: Use F13-F24 as they're rarely used by other applications.
+
+#### For OBS Studio:
+
+1. Open **OBS Studio**
+2. Go to **Settings** → **Hotkeys**
+3. Scroll to find your sources
+4. Assign hotkeys to "Show" or "Toggle" for each source
+5. Click **OK**
+
+### Step 2: Configure TikForever
+
+In the TikForever GUI:
+
+1. Go to **Event Mappings** tab
+2. Select **Action**: `obs_hotkey`
+3. Enter the hotkey you configured (e.g., `f13`, `f14`)
+4. Set your event, trigger, duration, and cooldown
+5. Click **Add Mapping**
+
+### Example: Follow Alert with Hotkey
+
+**In TikTok Live Studio:**
+- Assign F13 to show/hide your "Follow Alert" source
+
+**In TikForever GUI:**
+```
+Event: follow
+Trigger: (leave empty)
+Action: obs_hotkey
+Hotkey: f13
+Duration: 0.1
+Cooldown: 2.0
+```
+
+**Or in config.json:**
+```json
+{
+  "event_type": "follow",
+  "trigger": "",
+  "action": "obs_hotkey",
+  "obs_hotkey": "f13",
+  "duration": 0.1,
+  "cooldown": 2.0,
+  "enabled": true,
+  "description": "Show follow alert via F13 hotkey"
+}
+```
+
+### Complete Hotkey Example
+
+```json
+{
+  "tiktok_username": "your_username",
+  "mappings": [
+    {
+      "event_type": "follow",
+      "trigger": "",
+      "action": "obs_hotkey",
+      "obs_hotkey": "f13",
+      "duration": 0.1,
+      "cooldown": 2.0,
+      "enabled": true,
+      "description": "Follow alert"
+    },
+    {
+      "event_type": "gift",
+      "trigger": "Rose",
+      "action": "obs_hotkey",
+      "obs_hotkey": "f14",
+      "duration": 0.1,
+      "cooldown": 3.0,
+      "enabled": true,
+      "description": "Rose gift alert"
+    },
+    {
+      "event_type": "share",
+      "trigger": "",
+      "action": "obs_hotkey",
+      "obs_hotkey": "f15",
+      "duration": 0.1,
+      "cooldown": 3.0,
+      "enabled": true,
+      "description": "Share alert"
+    }
+  ]
+}
+```
+
+### Hotkey Setup Tips
+
+1. **Use F13-F24**: These function keys are rarely used and won't conflict
+2. **Toggle vs Show**: Configure your hotkeys to toggle sources on/off
+3. **Test First**: Test each hotkey manually before going live
+4. **Keep a List**: Write down which F-key controls which source
+5. **Duration**: Keep duration short (0.1s) - just long enough to trigger the hotkey
+
+### Recommended Hotkey Mapping
+
+| Event | Hotkey | Source in TikTok Live Studio |
+|-------|--------|------------------------------|
+| Follow | F13 | Follow Alert |
+| Gift (Rose) | F14 | Small Gift Alert |
+| Gift (TikTok) | F15 | Medium Gift Alert |
+| Gift (Drama Queen) | F16 | Big Gift Alert |
+| Share | F17 | Share Alert |
+| Like | F18 | Like Effect |
+
+---
+
+## OBS Action Types (WebSocket Method Only)
+
+**Note**: These action types only work with Method 1 (WebSocket/OBS Studio). For TikTok Live Studio, use Method 2 (Hotkeys).
+
+TikForever supports several OBS actions via WebSocket:
 
 ### 1. `show` - Show a source
 Shows a source permanently until hidden.
@@ -367,5 +531,28 @@ Here's a complete config with keyboard + OBS actions:
   ]
 }
 ```
+
+---
+
+## Which Method Should I Use?
+
+### Use Method 2 (Hotkeys) if:
+✅ You're using **TikTok Live Studio** (required)
+✅ You want **easier setup**
+✅ You want to trigger **any action** (scene switching, filters, etc.)
+✅ You don't want to deal with WebSocket configuration
+
+### Use Method 1 (WebSocket) if:
+✅ You're using **OBS Studio** (not TikTok Live Studio)
+✅ You want **fine-grained control** (show_temp with automatic hiding)
+✅ You want to **query** scenes and sources programmatically
+✅ You're comfortable with WebSocket setup
+
+### Can I Use Both?
+Yes! You can use both methods in the same configuration:
+- Use `action: "obs"` for WebSocket control (OBS Studio)
+- Use `action: "obs_hotkey"` for hotkey control (any software)
+
+---
 
 Now your stream is fully interactive with both game control and visual alerts! 🎮✨

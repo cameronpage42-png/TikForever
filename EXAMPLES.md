@@ -2,12 +2,28 @@
 
 This guide provides step-by-step examples of common setups using TikForever with TikTok Live Studio (or OBS).
 
+## 🔥 Important: Two Methods for TikTok Live Studio Integration
+
+**For TikTok Live Studio users**, we recommend using **Method 2: Hotkeys** instead of WebSocket:
+
+- **Method 1 (WebSocket)**: Only works with OBS Studio 28+, not TikTok Live Studio
+- **Method 2 (Hotkeys)**: Works with BOTH OBS Studio and TikTok Live Studio ✅
+
+The examples below show **WebSocket configuration** for OBS Studio. To use with **TikTok Live Studio**, simply:
+1. Set up hotkeys in TikTok Live Studio (F13, F14, etc.) for your sources
+2. Change `"action": "obs"` to `"action": "obs_hotkey"`
+3. Remove `obs_action`, `obs_scene`, and `obs_source` fields
+4. Add `"obs_hotkey": "f13"` (or whichever key you assigned)
+
+See [OBS_SETUP.md](OBS_SETUP.md) for detailed instructions on both methods.
+
 ## Table of Contents
 1. [Scenario 1: Basic Follow Alert](#scenario-1-basic-follow-alert)
 2. [Scenario 2: Multi-Gift Alert System](#scenario-2-multi-gift-alert-system)
 3. [Scenario 3: Interactive Game Stream](#scenario-3-interactive-game-stream)
 4. [Scenario 4: Engagement Overlay System](#scenario-4-engagement-overlay-system)
 5. [Scenario 5: Thank You Message Rotation](#scenario-5-thank-you-message-rotation)
+6. [Scenario 6: TikTok Live Studio with Hotkeys](#scenario-6-tiktok-live-studio-with-hotkeys) ⭐ **RECOMMENDED FOR TIKTOK LIVE STUDIO**
 
 ---
 
@@ -603,6 +619,192 @@ Make sure you use the exact names (case-sensitive):
 - **Don't use huge files** - Keep images/videos optimized
 - **Don't forget to test** - Murphy's law applies to streaming
 - **Don't use too many alerts** - Keep it simple and clean
+
+---
+
+## Scenario 6: TikTok Live Studio with Hotkeys
+
+**Goal**: Use TikForever with TikTok Live Studio using the hotkey method (no WebSocket needed).
+
+### Why This Method?
+
+TikTok Live Studio doesn't expose WebSocket settings like OBS Studio does. The hotkey method is the **recommended way** to integrate TikForever with TikTok Live Studio.
+
+### Step 1: Create Your Alerts
+
+1. Create your alert graphics (PNG/GIF files):
+   - `follow_alert.png` - Follow notification
+   - `rose_alert.gif` - Rose gift animation
+   - `share_alert.png` - Share thank you
+   - `like_effect.gif` - Like sparkles
+
+2. Add them to TikTok Live Studio as **Image** or **Media** sources
+3. Name them clearly: `Follow Alert`, `Rose Gift`, `Share Alert`, `Like Effect`
+4. Position them where you want
+5. **Hide them by default** (click the eye icon)
+
+### Step 2: Set Up Hotkeys in TikTok Live Studio
+
+1. Open **TikTok Live Studio**
+2. Go to **Settings** → **Hotkeys**
+3. Assign function keys to toggle your sources:
+
+   | Source | Hotkey | Action |
+   |--------|--------|--------|
+   | Follow Alert | F13 | Show/Hide |
+   | Rose Gift | F14 | Show/Hide |
+   | Share Alert | F15 | Show/Hide |
+   | Like Effect | F16 | Show/Hide |
+
+4. Click **OK** to save
+
+**💡 Tip**: Test each hotkey manually by pressing the key to make sure it works!
+
+### Step 3: Configure TikForever with Hotkeys
+
+Edit your `config.json`:
+
+```json
+{
+  "tiktok_username": "your_username",
+  "mappings": [
+    {
+      "event_type": "follow",
+      "trigger": "",
+      "action": "obs_hotkey",
+      "obs_hotkey": "f13",
+      "duration": 0.1,
+      "cooldown": 2.0,
+      "enabled": true,
+      "description": "Show follow alert via F13"
+    },
+    {
+      "event_type": "gift",
+      "trigger": "Rose",
+      "action": "obs_hotkey",
+      "obs_hotkey": "f14",
+      "duration": 0.1,
+      "cooldown": 3.0,
+      "enabled": true,
+      "description": "Show rose gift alert via F14"
+    },
+    {
+      "event_type": "share",
+      "trigger": "",
+      "action": "obs_hotkey",
+      "obs_hotkey": "f15",
+      "duration": 0.1,
+      "cooldown": 3.0,
+      "enabled": true,
+      "description": "Show share alert via F15"
+    },
+    {
+      "event_type": "like",
+      "trigger": "",
+      "action": "obs_hotkey",
+      "obs_hotkey": "f16",
+      "duration": 0.1,
+      "cooldown": 10.0,
+      "enabled": true,
+      "description": "Show like effect via F16"
+    }
+  ]
+}
+```
+
+### Step 4: Using the GUI (Easier!)
+
+Instead of editing JSON, use the TikForever GUI:
+
+1. Open TikForever
+2. Go to **Event Mappings** tab
+3. For each alert:
+   - **Event**: Select event type (follow, gift, like, share)
+   - **Trigger**: Enter trigger if needed (e.g., "Rose" for gifts)
+   - **Action**: Select `obs_hotkey`
+   - **Hotkey**: Enter the function key (e.g., `f13`, `f14`)
+   - **Duration**: Set to 0.1
+   - **Cooldown**: Set appropriate cooldown (2-10 seconds)
+   - Click **Add Mapping**
+4. Click **Save Mappings** when done
+
+### Step 5: Test It!
+
+1. Start TikTok Live Studio (don't go live yet)
+2. Run TikForever and connect to your username
+3. Test the hotkeys manually:
+   - Press F13 → Follow Alert should appear/disappear
+   - Press F14 → Rose Gift should appear/disappear
+   - etc.
+4. If hotkeys work manually, they'll work with TikForever!
+5. Go live and test with a friend or test account
+
+### How It Works
+
+When someone follows you:
+1. TikForever receives the follow event
+2. Checks for matching mapping (event_type: "follow", action: "obs_hotkey")
+3. Simulates pressing F13
+4. TikTok Live Studio responds to F13 by toggling "Follow Alert"
+5. After cooldown period, the mapping can trigger again
+
+### Advantages of Hotkey Method
+
+✅ **Works with TikTok Live Studio** (no WebSocket needed)
+✅ **Simple setup** - just assign hotkeys
+✅ **Reliable** - same method used by popular streaming tools
+✅ **Flexible** - can trigger ANY action assigned to a hotkey
+✅ **No connection issues** - no WebSocket connection to maintain
+
+### Combining with Game Control
+
+You can mix game control and visual alerts:
+
+```json
+{
+  "mappings": [
+    {
+      "event_type": "comment",
+      "trigger": "jump",
+      "action": "keyboard",
+      "key": "space",
+      "duration": 0.1,
+      "cooldown": 0.5,
+      "enabled": true,
+      "description": "Jump command"
+    },
+    {
+      "event_type": "follow",
+      "trigger": "",
+      "action": "obs_hotkey",
+      "obs_hotkey": "f13",
+      "duration": 0.1,
+      "cooldown": 2.0,
+      "enabled": true,
+      "description": "Follow alert"
+    }
+  ]
+}
+```
+
+Now viewers can control your game with comments AND you get visual alerts for follows/gifts/shares!
+
+### Troubleshooting
+
+**Hotkey doesn't trigger?**
+- ✅ Test the hotkey manually in TikTok Live Studio first
+- ✅ Make sure TikTok Live Studio window is in focus
+- ✅ Check you used the correct key name (`f13` not `F13` - lowercase)
+- ✅ Try a different function key (F13-F24)
+
+**Alert shows but doesn't hide?**
+- ✅ Make sure your hotkey is set to "Toggle" not just "Show"
+- ✅ Press the hotkey manually twice to reset the state
+- ✅ Check the source is hidden by default when you start
+
+**Multiple alerts triggering?**
+- ✅ Increase cooldown times to prevent spam
+- ✅ Check you don't have duplicate mappings
 
 ---
 
