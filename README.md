@@ -7,9 +7,10 @@ A Windows application that connects to TikTok Live streams and allows viewers to
 - 🎮 **Game Control**: Simulate keyboard presses and controller inputs
 - 🔴 **TikTok Live Integration**: Connect to any TikTok Live stream
 - 💬 **Event Mapping**: Map TikTok events (comments, gifts, likes, shares, follows) to game inputs
-- 📺 **OBS Integration**: Control OBS/TikTok Live Studio sources (show alerts, animations, etc.)
-- ⚙️ **Customizable**: Configure key bindings and event triggers
-- 🖥️ **Windows Native**: Optimized for Windows with full controller support
+- 📺 **Browser Source Alerts**: Professional animated alerts for TikTok Live Studio (RECOMMENDED!)
+- 🎯 **OBS Integration**: Control OBS Studio via WebSocket or hotkeys
+- ⚙️ **Customizable**: Configure key bindings and event triggers via GUI
+- 🖥️ **Windows Native**: Optimized for Windows with optional controller support
 
 ## Requirements
 
@@ -72,16 +73,30 @@ The app supports the following TikTok Live events:
 - Joystick movements
 - Trigger presses
 
-#### OBS Actions (TikTok Live Studio / OBS Studio)
+#### Browser Source Alerts (RECOMMENDED for TikTok Live Studio!)
+- **Professional animated alerts** with images, GIFs, and videos
+- **Works perfectly** with TikTok Live Studio AND OBS Studio
+- **Easy setup**: Just add `http://localhost:8000` as a Browser Source
+- **Auto-hiding** alerts with configurable duration
+- **Multiple simultaneous alerts** supported
+
+**Browser Source Setup**: See [BROWSER_SOURCE_SETUP.md](BROWSER_SOURCE_SETUP.md) for complete setup guide.
+
+#### OBS WebSocket Actions (OBS Studio Only)
 - **Show Source**: Make a source visible
 - **Hide Source**: Hide a source
 - **Toggle Source**: Toggle source visibility
-- **Show Temporarily**: Show for X seconds then auto-hide (perfect for alerts!)
+- **Show Temporarily**: Show for X seconds then auto-hide
 
-**OBS Setup**: See [OBS_SETUP.md](OBS_SETUP.md) for detailed instructions on enabling OBS WebSocket and configuring alerts.
+**OBS WebSocket Setup**: See [OBS_SETUP.md](OBS_SETUP.md) for instructions.
+
+#### OBS Hotkey Actions (Works with TikTok Live Studio!)
+- **Trigger hotkeys** in OBS or TikTok Live Studio
+- **No WebSocket needed** - simpler setup
+- **Flexible** - can trigger any action assigned to a hotkey
 
 **Example Use Cases**:
-- Show a "Follow Alert" graphic when someone follows (3 seconds)
+- Show a "Follow Alert" graphic when someone follows
 - Trigger gift animations when viewers send gifts
 - Display thank you messages on screen
 - Toggle special effects based on engagement
@@ -182,6 +197,8 @@ Built with:
 - [pynput](https://github.com/moses-palmer/pynput) - Keyboard/mouse control
 - [vgamepad](https://github.com/yannbouteiller/vgamepad) - Virtual controller
 - [PyQt6](https://www.riverbankcomputing.com/software/pyqt/) - GUI framework
+- [Flask](https://flask.palletsprojects.com/) - Browser source alert server
+- [obs-websocket-py](https://github.com/Elektordi/obs-websocket-py) - OBS WebSocket control
 
 ## License
 
