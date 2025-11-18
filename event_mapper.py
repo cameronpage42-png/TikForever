@@ -156,19 +156,32 @@ class EventMapper:
             event_type: Type of event (comment, gift, like, etc.)
             event_data: Event data dictionary
         """
+        logger.debug(f"Processing event: {event_type}, data: {event_data}")
+
         # Check global cooldown
         current_time = time.time()
         if (current_time - self.last_action_time) < self.global_cooldown:
+            logger.debug(f"Global cooldown active, skipping event")
             return
 
         # Find matching mappings
+        matched = False
         for mapping in self.mappings:
-            if mapping.event_type == event_type and mapping.matches_event(event_data):
-                if mapping.can_trigger():
-                    self._execute_mapping(mapping, event_data)
-                    mapping.mark_triggered()
-                    self.last_action_time = current_time
-                    break  # Only execute first match
+            if mapping.event_type == event_type:
+                logger.debug(f"Checking mapping: {mapping.trigger} ({mapping.event_type})")
+                if mapping.matches_event(event_data):
+                    matched = True
+                    logger.info(f"Event matched mapping: {mapping.trigger}")
+                    if mapping.can_trigger():
+                        self._execute_mapping(mapping, event_data)
+                        mapping.mark_triggered()
+                        self.last_action_time = current_time
+                        break  # Only execute first match
+                    else:
+                        logger.info(f"Mapping on cooldown: {mapping.trigger}")
+
+        if not matched:
+            logger.debug(f"No matching mapping found for {event_type} event")
 
     def _execute_mapping(self, mapping: EventMapping, event_data: Dict[str, Any]):
         """

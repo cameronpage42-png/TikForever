@@ -22,7 +22,12 @@ class TikTokLiveManager:
         Args:
             username: TikTok username to connect to
         """
+        # Clean username (remove @ if present)
+        if username.startswith('@'):
+            username = username[1:]
+
         self.username = username
+        logger.info(f"Initializing TikTok client for @{username}")
         self.client = TikTokLiveClient(unique_id=f"@{username}")
         self.is_connected = False
         self.event_callbacks = {

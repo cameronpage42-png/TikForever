@@ -114,19 +114,30 @@ Example configuration:
 
 ## Troubleshooting
 
+### Quick Fixes
+
+**Events/Statistics Not Updating**:
+- **MUST be actively live streaming on TikTok** (not just opening the app)
+- Send a test comment from another device to verify
+- Check the Event Log tab to see if events are being received
+
 **Connection Issues**:
 - Make sure your TikTok account is set to public
-- Verify you're using the correct username
+- Verify you're using the correct username (without @)
+- Ensure you're actually live streaming when connecting
 - Check your internet connection
 
 **Input Not Working**:
 - Run the application as Administrator (required for some games)
-- Make sure the game window is focused
+- Make sure the game window is focused (clicked on)
 - Check that your mappings are configured correctly
+- Test with Notepad first to verify keys work
 
 **Controller Not Detected**:
 - Install vgamepad properly (requires ViGEmBus driver)
 - Check Windows device manager for virtual controller
+
+**For detailed troubleshooting, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)**
 
 ## Safety & Privacy
 

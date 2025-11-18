@@ -39,30 +39,52 @@ class TikTokThread(QThread):
         super().__init__()
         self.tiktok_manager = tiktok_manager
         self.running = False
+        self.loop = None
 
     def run(self):
         """Run the TikTok Live client"""
         self.running = True
         try:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            # Create new event loop for this thread
+            self.loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self.loop)
 
-            loop.run_until_complete(self.tiktok_manager.connect())
-            self.connected.emit()
-
-            # Keep running
-            while self.running and self.tiktok_manager.is_connected:
-                loop.run_until_complete(asyncio.sleep(0.1))
+            # Start the client (connects and keeps running)
+            logger.info("Starting TikTok client...")
+            self.loop.run_until_complete(self._run_client())
 
         except Exception as e:
             logger.error(f"TikTok thread error: {e}")
             self.error.emit(str(e))
         finally:
             self.running = False
+            if self.loop:
+                self.loop.close()
             self.disconnected.emit()
+
+    async def _run_client(self):
+        """Run the TikTok client with proper event loop handling"""
+        try:
+            # Start the client
+            await self.tiktok_manager.client.start()
+            self.connected.emit()
+            logger.info("TikTok client started successfully")
+
+            # Keep the event loop running while connected
+            while self.running and self.tiktok_manager.is_connected:
+                await asyncio.sleep(0.1)
+
+        except Exception as e:
+            logger.error(f"Error running client: {e}")
+            raise
+        finally:
+            # Disconnect on exit
+            if self.tiktok_manager.is_connected:
+                await self.tiktok_manager.disconnect()
 
     def stop(self):
         """Stop the thread"""
+        logger.info("Stopping TikTok thread...")
         self.running = False
 
 
@@ -77,6 +99,16 @@ class MainWindow(QMainWindow):
         self.event_mapper = EventMapper(self.input_simulator)
         self.tiktok_manager = None
         self.tiktok_thread = None
+
+        # Statistics tracking
+        self.stats = {
+            'total': 0,
+            'comments': 0,
+            'gifts': 0,
+            'likes': 0,
+            'shares': 0,
+            'follows': 0
+        }
 
         self.init_ui()
         self.load_config()
@@ -164,7 +196,7 @@ class MainWindow(QMainWindow):
         stats_layout = QVBoxLayout()
         stats_group.setLayout(stats_layout)
 
-        self.stats_label = QLabel("Total Events: 0\nComments: 0\nGifts: 0\nLikes: 0")
+        self.stats_label = QLabel("Total Events: 0\nComments: 0\nGifts: 0\nLikes: 0\nShares: 0\nFollows: 0")
         stats_layout.addWidget(self.stats_label)
 
         layout.addWidget(stats_group)
@@ -422,6 +454,12 @@ class MainWindow(QMainWindow):
 
         username = self.username_input.text().strip()
 
+        # Remove @ if present
+        if username.startswith('@'):
+            username = username[1:]
+
+        logger.info(f"Attempting to connect to @{username}")
+
         try:
             # Create TikTok manager
             self.tiktok_manager = TikTokLiveManager(username)
@@ -465,6 +503,17 @@ class MainWindow(QMainWindow):
     def on_connected(self):
         """Handle successful connection"""
 
+        # Reset statistics
+        self.stats = {
+            'total': 0,
+            'comments': 0,
+            'gifts': 0,
+            'likes': 0,
+            'shares': 0,
+            'follows': 0
+        }
+        self.update_stats()
+
         self.status_label.setText("Status: Connected ✓")
         self.status_label.setStyleSheet("QLabel { color: #4CAF50; font-weight: bold; padding: 10px; }")
         self.statusBar().showMessage("Connected to TikTok Live")
@@ -490,6 +539,22 @@ class MainWindow(QMainWindow):
     def handle_event(self, event_type: str, event_data: dict):
         """Handle TikTok Live event"""
 
+        # Update statistics
+        self.stats['total'] += 1
+        if event_type == 'comment':
+            self.stats['comments'] += 1
+        elif event_type == 'gift':
+            self.stats['gifts'] += 1
+        elif event_type == 'like':
+            self.stats['likes'] += 1
+        elif event_type == 'share':
+            self.stats['shares'] += 1
+        elif event_type == 'follow':
+            self.stats['follows'] += 1
+
+        # Update stats display
+        self.update_stats()
+
         # Log event
         user = event_data.get('user', 'Unknown')
 
@@ -506,6 +571,18 @@ class MainWindow(QMainWindow):
 
         # Process event through mapper
         self.event_mapper.process_event(event_type, event_data)
+
+    def update_stats(self):
+        """Update statistics display"""
+        stats_text = (
+            f"Total Events: {self.stats['total']}\n"
+            f"Comments: {self.stats['comments']}\n"
+            f"Gifts: {self.stats['gifts']}\n"
+            f"Likes: {self.stats['likes']}\n"
+            f"Shares: {self.stats['shares']}\n"
+            f"Follows: {self.stats['follows']}"
+        )
+        self.stats_label.setText(stats_text)
 
     def log_event(self, event_type: str, message: str):
         """Log an event to the log display"""
