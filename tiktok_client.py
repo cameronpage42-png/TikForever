@@ -58,8 +58,7 @@ class TikTokLiveManager:
             logger.info(f"Comment: {event.user.nickname}: {event.comment}")
             await self._trigger_callbacks('comment', {
                 'user': event.user.nickname,
-                'comment': event.comment.lower().strip(),
-                'user_id': event.user.user_id
+                'comment': event.comment.lower().strip()
             })
 
         @self.client.on(GiftEvent)
@@ -73,8 +72,7 @@ class TikTokLiveManager:
                 'user': event.user.nickname,
                 'gift_name': event.gift.name,
                 'gift_id': event.gift.id,
-                'count': event.gift.count,
-                'user_id': event.user.user_id
+                'count': event.gift.count
             })
 
         @self.client.on(LikeEvent)
@@ -83,24 +81,21 @@ class TikTokLiveManager:
             await self._trigger_callbacks('like', {
                 'user': event.user.nickname,
                 'count': event.count,
-                'total': event.total,
-                'user_id': event.user.user_id
+                'total': event.total
             })
 
         @self.client.on(ShareEvent)
         async def on_share(event: ShareEvent):
             logger.info(f"Share: {event.user.nickname} shared the stream")
             await self._trigger_callbacks('share', {
-                'user': event.user.nickname,
-                'user_id': event.user.user_id
+                'user': event.user.nickname
             })
 
         @self.client.on(FollowEvent)
         async def on_follow(event: FollowEvent):
             logger.info(f"Follow: {event.user.nickname} followed!")
             await self._trigger_callbacks('follow', {
-                'user': event.user.nickname,
-                'user_id': event.user.user_id
+                'user': event.user.nickname
             })
 
     async def _trigger_callbacks(self, event_type: str, event_data: Dict[str, Any]):
