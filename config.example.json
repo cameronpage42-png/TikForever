@@ -159,6 +159,42 @@
       "cooldown": 3.0,
       "enabled": false,
       "description": "Share alert via hotkey F15 (Works with TikTok Live Studio!)"
+    },
+    {
+      "event_type": "follow",
+      "trigger": "",
+      "action": "browser_source",
+      "alert_type": "follow",
+      "alert_message": "Thanks for following!",
+      "media_file": "follow_alert.gif",
+      "duration": 3.0,
+      "cooldown": 2.0,
+      "enabled": false,
+      "description": "Follow alert via Browser Source (RECOMMENDED for TikTok Live Studio!)"
+    },
+    {
+      "event_type": "gift",
+      "trigger": "Rose",
+      "action": "browser_source",
+      "alert_type": "gift",
+      "alert_message": "",
+      "media_file": "rose_gift.gif",
+      "duration": 4.0,
+      "cooldown": 3.0,
+      "enabled": false,
+      "description": "Rose gift alert via Browser Source (RECOMMENDED for TikTok Live Studio!)"
+    },
+    {
+      "event_type": "share",
+      "trigger": "",
+      "action": "browser_source",
+      "alert_type": "share",
+      "alert_message": "Thanks for sharing!",
+      "media_file": null,
+      "duration": 3.0,
+      "cooldown": 3.0,
+      "enabled": false,
+      "description": "Share alert via Browser Source (RECOMMENDED for TikTok Live Studio!)"
     }
   ],
   "settings": {

@@ -30,7 +30,7 @@ class EventMapping:
         """
         self.event_type = mapping_data.get('event_type')  # comment, gift, like, share, follow
         self.trigger = mapping_data.get('trigger')  # e.g., comment text, gift name
-        self.action_type = mapping_data.get('action')  # keyboard, controller, obs, obs_hotkey
+        self.action_type = mapping_data.get('action')  # keyboard, controller, obs, obs_hotkey, browser_source
         self.key = mapping_data.get('key')  # For keyboard
         self.button = mapping_data.get('button')  # For controller button
         self.joystick = mapping_data.get('joystick')  # For joystick movement
@@ -40,6 +40,10 @@ class EventMapping:
         self.obs_scene = mapping_data.get('obs_scene')  # Scene name
         self.obs_source = mapping_data.get('obs_source')  # Source name
         self.obs_hotkey = mapping_data.get('obs_hotkey')  # For obs_hotkey action (e.g., 'f13')
+        # Browser source fields
+        self.alert_type = mapping_data.get('alert_type')  # follow, gift, share, like, comment
+        self.alert_message = mapping_data.get('alert_message', '')  # Custom message
+        self.media_file = mapping_data.get('media_file')  # Image/video filename
         self.duration = mapping_data.get('duration', 0.1)  # Action duration
         self.cooldown = mapping_data.get('cooldown', 0.5)  # Cooldown between triggers
         self.last_triggered = 0
@@ -99,6 +103,9 @@ class EventMapping:
             'obs_scene': self.obs_scene,
             'obs_source': self.obs_source,
             'obs_hotkey': self.obs_hotkey,
+            'alert_type': self.alert_type,
+            'alert_message': self.alert_message,
+            'media_file': self.media_file,
             'duration': self.duration,
             'cooldown': self.cooldown,
             'enabled': self.enabled,
@@ -109,16 +116,19 @@ class EventMapping:
 class EventMapper:
     """Manages event mappings and triggers inputs"""
 
-    def __init__(self, input_simulator: InputSimulator, obs_controller: Optional['OBSController'] = None):
+    def __init__(self, input_simulator: InputSimulator, obs_controller: Optional['OBSController'] = None,
+                 alert_server: Optional['AlertServer'] = None):
         """
         Initialize event mapper
 
         Args:
             input_simulator: InputSimulator instance
             obs_controller: Optional OBS Controller instance for OBS actions
+            alert_server: Optional Alert Server instance for browser source alerts
         """
         self.input_simulator = input_simulator
         self.obs_controller = obs_controller
+        self.alert_server = alert_server
         self.mappings: List[EventMapping] = []
         self.global_cooldown = 0.1  # Minimum time between any actions
         self.last_action_time = 0
@@ -257,6 +267,38 @@ class EventMapper:
                     logger.info(f"Triggering OBS hotkey: {mapping.obs_hotkey}")
                     self.input_simulator.press_key(mapping.obs_hotkey, 0.1)
 
+            elif mapping.action_type == 'browser_source':
+                # Trigger browser source alert (works with TikTok Live Studio)
+                if not self.alert_server or not self.alert_server.is_running:
+                    logger.warning("Alert server not running - cannot trigger browser source alert")
+                else:
+                    username = event_data.get('user', 'Anonymous')
+                    alert_type = mapping.alert_type or mapping.event_type
+
+                    # Customize message based on event type
+                    message = mapping.alert_message
+                    if not message:
+                        if mapping.event_type == 'follow':
+                            message = 'Thanks for following!'
+                        elif mapping.event_type == 'gift':
+                            gift_name = event_data.get('gift_name', 'a gift')
+                            message = f'Thanks for {gift_name}!'
+                        elif mapping.event_type == 'share':
+                            message = 'Thanks for sharing!'
+                        elif mapping.event_type == 'like':
+                            message = '❤️'
+                        elif mapping.event_type == 'comment':
+                            message = event_data.get('comment', '')
+
+                    self.alert_server.trigger_alert(
+                        alert_type=alert_type,
+                        username=username,
+                        message=message,
+                        media_file=mapping.media_file,
+                        duration=mapping.duration
+                    )
+                    logger.info(f"Triggered browser source alert: {alert_type} for {username}")
+
             user = event_data.get('user', 'Unknown')
             logger.info(f"Executed mapping for {user}: {mapping.event_type} -> {mapping.action_type}")
 
@@ -272,6 +314,7 @@ class EventMapper:
             'keyboard': sum(1 for m in self.mappings if m.action_type == 'keyboard'),
             'controller': sum(1 for m in self.mappings if m.action_type == 'controller'),
             'obs': sum(1 for m in self.mappings if m.action_type == 'obs'),
-            'obs_hotkey': sum(1 for m in self.mappings if m.action_type == 'obs_hotkey')
+            'obs_hotkey': sum(1 for m in self.mappings if m.action_type == 'obs_hotkey'),
+            'browser_source': sum(1 for m in self.mappings if m.action_type == 'browser_source')
         }
         return stats

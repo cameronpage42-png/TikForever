@@ -21,6 +21,7 @@ from input_simulator import InputSimulator
 from event_mapper import EventMapper
 from config_manager import ConfigManager
 from obs_controller import OBSController
+from alert_server import AlertServer
 
 logging.basicConfig(
     level=logging.INFO,
@@ -119,9 +120,13 @@ class MainWindow(QMainWindow):
         self.config = ConfigManager()
         self.input_simulator = InputSimulator()
         self.obs_controller = OBSController()
-        self.event_mapper = EventMapper(self.input_simulator, self.obs_controller)
+        self.alert_server = AlertServer(port=8000)
+        self.event_mapper = EventMapper(self.input_simulator, self.obs_controller, self.alert_server)
         self.tiktok_manager = None
         self.tiktok_thread = None
+
+        # Start alert server automatically
+        self.alert_server.start()
 
         # Statistics tracking
         self.stats = {
@@ -287,7 +292,7 @@ class MainWindow(QMainWindow):
         row2 = QHBoxLayout()
         row2.addWidget(QLabel("Action:"))
         self.action_combo = QComboBox()
-        self.action_combo.addItems(["keyboard", "controller", "obs", "obs_hotkey"])
+        self.action_combo.addItems(["keyboard", "controller", "obs", "obs_hotkey", "browser_source"])
         self.action_combo.currentTextChanged.connect(self.on_action_type_changed)
         row2.addWidget(self.action_combo)
 
@@ -348,6 +353,43 @@ class MainWindow(QMainWindow):
 
         self.obs_hotkey_widget.setVisible(False)  # Hidden by default
         add_layout.addWidget(self.obs_hotkey_widget)
+
+        # Browser Source fields (hidden by default)
+        self.browser_source_widget = QWidget()
+        browser_source_layout = QVBoxLayout()
+        self.browser_source_widget.setLayout(browser_source_layout)
+
+        browser_info_label = QLabel(
+            "Browser Source Alerts - Professional stream alerts!\n"
+            "Add Browser Source in TikTok Live Studio: http://localhost:8000\n"
+            "Place your alert images/videos in the 'alerts' folder"
+        )
+        browser_info_label.setStyleSheet("QLabel { color: #4CAF50; font-style: italic; padding: 5px; }")
+        browser_source_layout.addWidget(browser_info_label)
+
+        alert_type_layout = QHBoxLayout()
+        alert_type_layout.addWidget(QLabel("Alert Type:"))
+        self.alert_type_combo = QComboBox()
+        self.alert_type_combo.addItems(["follow", "gift", "share", "like", "comment"])
+        alert_type_layout.addWidget(self.alert_type_combo)
+        browser_source_layout.addLayout(alert_type_layout)
+
+        alert_message_layout = QHBoxLayout()
+        alert_message_layout.addWidget(QLabel("Message:"))
+        self.alert_message_input = QLineEdit()
+        self.alert_message_input.setPlaceholderText("e.g., 'Thanks for following!' (leave empty for default)")
+        alert_message_layout.addWidget(self.alert_message_input)
+        browser_source_layout.addLayout(alert_message_layout)
+
+        media_file_layout = QHBoxLayout()
+        media_file_layout.addWidget(QLabel("Media File:"))
+        self.media_file_input = QLineEdit()
+        self.media_file_input.setPlaceholderText("e.g., 'follow_alert.gif' (optional)")
+        media_file_layout.addWidget(self.media_file_input)
+        browser_source_layout.addLayout(media_file_layout)
+
+        self.browser_source_widget.setVisible(False)  # Hidden by default
+        add_layout.addWidget(self.browser_source_widget)
 
         # Row 3: Duration and cooldown
         row3 = QHBoxLayout()
@@ -627,14 +669,22 @@ class MainWindow(QMainWindow):
         if action_type == 'obs':
             self.obs_fields_widget.setVisible(True)
             self.obs_hotkey_widget.setVisible(False)
+            self.browser_source_widget.setVisible(False)
             self.input_field.setVisible(False)
         elif action_type == 'obs_hotkey':
             self.obs_fields_widget.setVisible(False)
             self.obs_hotkey_widget.setVisible(True)
+            self.browser_source_widget.setVisible(False)
+            self.input_field.setVisible(False)
+        elif action_type == 'browser_source':
+            self.obs_fields_widget.setVisible(False)
+            self.obs_hotkey_widget.setVisible(False)
+            self.browser_source_widget.setVisible(True)
             self.input_field.setVisible(False)
         else:
             self.obs_fields_widget.setVisible(False)
             self.obs_hotkey_widget.setVisible(False)
+            self.browser_source_widget.setVisible(False)
             self.input_field.setVisible(True)
 
     def refresh_mappings_table(self):
@@ -648,12 +698,16 @@ class MainWindow(QMainWindow):
             self.mappings_table.setItem(i, 1, QTableWidgetItem(mapping.get('trigger', '')))
             self.mappings_table.setItem(i, 2, QTableWidgetItem(mapping.get('action', '')))
 
-            # Determine input field - for OBS show scene/source, for obs_hotkey show hotkey, otherwise show key/button
+            # Determine input field - for OBS show scene/source, for obs_hotkey show hotkey, for browser_source show alert details, otherwise show key/button
             if mapping.get('action') == 'obs':
                 obs_info = f"{mapping.get('obs_action', '')} {mapping.get('obs_scene', '')}/{mapping.get('obs_source', '')}"
                 input_val = obs_info.strip()
             elif mapping.get('action') == 'obs_hotkey':
                 input_val = f"Hotkey: {mapping.get('obs_hotkey', '')}"
+            elif mapping.get('action') == 'browser_source':
+                alert_type = mapping.get('alert_type', '')
+                media_file = mapping.get('media_file', '')
+                input_val = f"Alert: {alert_type}" + (f" ({media_file})" if media_file else "")
             else:
                 input_val = mapping.get('key') or mapping.get('button') or mapping.get('joystick') or mapping.get('trigger_name') or ''
             self.mappings_table.setItem(i, 3, QTableWidgetItem(str(input_val)))
@@ -709,6 +763,16 @@ class MainWindow(QMainWindow):
 
             mapping_data['obs_hotkey'] = obs_hotkey
 
+        elif action == 'browser_source':
+            # Browser source alert (works with TikTok Live Studio)
+            alert_type = self.alert_type_combo.currentText()
+            alert_message = self.alert_message_input.text().strip()
+            media_file = self.media_file_input.text().strip()
+
+            mapping_data['alert_type'] = alert_type
+            mapping_data['alert_message'] = alert_message
+            mapping_data['media_file'] = media_file if media_file else None
+
         else:
             # Keyboard or controller action
             input_val = self.input_field.text().strip()
@@ -731,6 +795,8 @@ class MainWindow(QMainWindow):
         self.obs_scene_input.clear()
         self.obs_source_input.clear()
         self.obs_hotkey_input.clear()
+        self.alert_message_input.clear()
+        self.media_file_input.clear()
 
     def remove_mapping(self):
         """Remove selected mapping"""
