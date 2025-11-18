@@ -6,6 +6,12 @@
     "x": 100,
     "y": 100
   },
+  "obs": {
+    "enabled": false,
+    "host": "localhost",
+    "port": 4455,
+    "password": ""
+  },
   "mappings": [
     {
       "event_type": "comment",
@@ -86,6 +92,42 @@
       "cooldown": 5.0,
       "enabled": false,
       "description": "Likes trigger L key (disabled by default)"
+    },
+    {
+      "event_type": "follow",
+      "trigger": "",
+      "action": "obs",
+      "obs_action": "show_temp",
+      "obs_scene": "Main Scene",
+      "obs_source": "Follow Alert",
+      "duration": 3.0,
+      "cooldown": 2.0,
+      "enabled": false,
+      "description": "Show follow alert for 3 seconds (OBS)"
+    },
+    {
+      "event_type": "gift",
+      "trigger": "TikTok",
+      "action": "obs",
+      "obs_action": "show_temp",
+      "obs_scene": "Main Scene",
+      "obs_source": "Big Gift Alert",
+      "duration": 5.0,
+      "cooldown": 5.0,
+      "enabled": false,
+      "description": "Show big gift alert when TikTok gift received (OBS)"
+    },
+    {
+      "event_type": "share",
+      "trigger": "",
+      "action": "obs",
+      "obs_action": "show_temp",
+      "obs_scene": "Main Scene",
+      "obs_source": "Share Alert",
+      "duration": 4.0,
+      "cooldown": 3.0,
+      "enabled": false,
+      "description": "Show share alert for 4 seconds (OBS)"
     }
   ],
   "settings": {

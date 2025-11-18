@@ -6,7 +6,8 @@ A Windows application that connects to TikTok Live streams and allows viewers to
 
 - 🎮 **Game Control**: Simulate keyboard presses and controller inputs
 - 🔴 **TikTok Live Integration**: Connect to any TikTok Live stream
-- 💬 **Event Mapping**: Map TikTok events (comments, gifts, likes) to game inputs
+- 💬 **Event Mapping**: Map TikTok events (comments, gifts, likes, shares, follows) to game inputs
+- 📺 **OBS Integration**: Control OBS/TikTok Live Studio sources (show alerts, animations, etc.)
 - ⚙️ **Customizable**: Configure key bindings and event triggers
 - 🖥️ **Windows Native**: Optimized for Windows with full controller support
 
@@ -71,6 +72,20 @@ The app supports the following TikTok Live events:
 - Joystick movements
 - Trigger presses
 
+#### OBS Actions (TikTok Live Studio / OBS Studio)
+- **Show Source**: Make a source visible
+- **Hide Source**: Hide a source
+- **Toggle Source**: Toggle source visibility
+- **Show Temporarily**: Show for X seconds then auto-hide (perfect for alerts!)
+
+**OBS Setup**: See [OBS_SETUP.md](OBS_SETUP.md) for detailed instructions on enabling OBS WebSocket and configuring alerts.
+
+**Example Use Cases**:
+- Show a "Follow Alert" graphic when someone follows (3 seconds)
+- Trigger gift animations when viewers send gifts
+- Display thank you messages on screen
+- Toggle special effects based on engagement
+
 ## Configuration
 
 The application stores configuration in `config.json`. You can manually edit this file or use the GUI.
@@ -79,6 +94,12 @@ Example configuration:
 ```json
 {
   "tiktok_username": "your_username",
+  "obs": {
+    "enabled": true,
+    "host": "localhost",
+    "port": 4455,
+    "password": ""
+  },
   "mappings": [
     {
       "event_type": "comment",
@@ -91,6 +112,14 @@ Example configuration:
       "trigger": "Rose",
       "action": "controller",
       "button": "A"
+    },
+    {
+      "event_type": "follow",
+      "action": "obs",
+      "obs_action": "show_temp",
+      "obs_scene": "Main Scene",
+      "obs_source": "Follow Alert",
+      "duration": 3.0
     }
   ]
 }

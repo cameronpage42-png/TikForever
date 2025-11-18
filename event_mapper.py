@@ -1,12 +1,18 @@
 """
 Event Mapper Module
-Maps TikTok Live events to game inputs with cooldown management
+Maps TikTok Live events to game inputs and OBS actions with cooldown management
 """
 
 import time
 import logging
 from typing import Dict, List, Any, Optional
 from input_simulator import InputSimulator
+
+try:
+    from obs_controller import OBSController
+    OBS_AVAILABLE = True
+except ImportError:
+    OBS_AVAILABLE = False
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,11 +30,15 @@ class EventMapping:
         """
         self.event_type = mapping_data.get('event_type')  # comment, gift, like, share, follow
         self.trigger = mapping_data.get('trigger')  # e.g., comment text, gift name
-        self.action_type = mapping_data.get('action')  # keyboard, controller
+        self.action_type = mapping_data.get('action')  # keyboard, controller, obs
         self.key = mapping_data.get('key')  # For keyboard
         self.button = mapping_data.get('button')  # For controller button
         self.joystick = mapping_data.get('joystick')  # For joystick movement
         self.trigger_name = mapping_data.get('trigger_name')  # For controller trigger
+        # OBS-specific fields
+        self.obs_action = mapping_data.get('obs_action')  # show, hide, toggle, show_temp
+        self.obs_scene = mapping_data.get('obs_scene')  # Scene name
+        self.obs_source = mapping_data.get('obs_source')  # Source name
         self.duration = mapping_data.get('duration', 0.1)  # Action duration
         self.cooldown = mapping_data.get('cooldown', 0.5)  # Cooldown between triggers
         self.last_triggered = 0
@@ -84,6 +94,9 @@ class EventMapping:
             'button': self.button,
             'joystick': self.joystick,
             'trigger_name': self.trigger_name,
+            'obs_action': self.obs_action,
+            'obs_scene': self.obs_scene,
+            'obs_source': self.obs_source,
             'duration': self.duration,
             'cooldown': self.cooldown,
             'enabled': self.enabled,
@@ -94,14 +107,16 @@ class EventMapping:
 class EventMapper:
     """Manages event mappings and triggers inputs"""
 
-    def __init__(self, input_simulator: InputSimulator):
+    def __init__(self, input_simulator: InputSimulator, obs_controller: Optional['OBSController'] = None):
         """
         Initialize event mapper
 
         Args:
             input_simulator: InputSimulator instance
+            obs_controller: Optional OBS Controller instance for OBS actions
         """
         self.input_simulator = input_simulator
+        self.obs_controller = obs_controller
         self.mappings: List[EventMapping] = []
         self.global_cooldown = 0.1  # Minimum time between any actions
         self.last_action_time = 0
@@ -216,6 +231,23 @@ class EventMapper:
                     if len(parts) == 2:
                         trigger, value = parts[0], float(parts[1])
                         self.input_simulator.press_trigger(trigger, value, mapping.duration)
+
+            elif mapping.action_type == 'obs':
+                if not self.obs_controller or not self.obs_controller.is_connected:
+                    logger.warning("OBS not connected - cannot execute OBS action")
+                elif mapping.obs_action and mapping.obs_scene and mapping.obs_source:
+                    if mapping.obs_action == 'show':
+                        self.obs_controller.show_source(mapping.obs_scene, mapping.obs_source)
+                    elif mapping.obs_action == 'hide':
+                        self.obs_controller.hide_source(mapping.obs_scene, mapping.obs_source)
+                    elif mapping.obs_action == 'toggle':
+                        self.obs_controller.toggle_source(mapping.obs_scene, mapping.obs_source)
+                    elif mapping.obs_action == 'show_temp':
+                        self.obs_controller.show_source_temporarily(
+                            mapping.obs_scene,
+                            mapping.obs_source,
+                            mapping.duration
+                        )
 
             user = event_data.get('user', 'Unknown')
             logger.info(f"Executed mapping for {user}: {mapping.event_type} -> {mapping.action_type}")
