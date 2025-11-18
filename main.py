@@ -20,6 +20,7 @@ from tiktok_client import TikTokLiveManager
 from input_simulator import InputSimulator
 from event_mapper import EventMapper
 from config_manager import ConfigManager
+from obs_controller import OBSController
 
 logging.basicConfig(
     level=logging.INFO,
@@ -117,7 +118,8 @@ class MainWindow(QMainWindow):
 
         self.config = ConfigManager()
         self.input_simulator = InputSimulator()
-        self.event_mapper = EventMapper(self.input_simulator)
+        self.obs_controller = OBSController()
+        self.event_mapper = EventMapper(self.input_simulator, self.obs_controller)
         self.tiktok_manager = None
         self.tiktok_thread = None
 
@@ -162,6 +164,10 @@ class MainWindow(QMainWindow):
         # Mappings tab
         mappings_tab = self.create_mappings_tab()
         tabs.addTab(mappings_tab, "Event Mappings")
+
+        # OBS tab
+        obs_tab = self.create_obs_tab()
+        tabs.addTab(obs_tab, "OBS/TikTok Live Studio")
 
         # Log tab
         log_tab = self.create_log_tab()
@@ -281,7 +287,8 @@ class MainWindow(QMainWindow):
         row2 = QHBoxLayout()
         row2.addWidget(QLabel("Action:"))
         self.action_combo = QComboBox()
-        self.action_combo.addItems(["keyboard", "controller"])
+        self.action_combo.addItems(["keyboard", "controller", "obs"])
+        self.action_combo.currentTextChanged.connect(self.on_action_type_changed)
         row2.addWidget(self.action_combo)
 
         row2.addWidget(QLabel("Input:"))
@@ -289,6 +296,35 @@ class MainWindow(QMainWindow):
         self.input_field.setPlaceholderText("e.g., 'space', 'A', 'left'")
         row2.addWidget(self.input_field)
         add_layout.addLayout(row2)
+
+        # OBS-specific fields (hidden by default)
+        self.obs_fields_widget = QWidget()
+        obs_fields_layout = QVBoxLayout()
+        self.obs_fields_widget.setLayout(obs_fields_layout)
+
+        obs_action_layout = QHBoxLayout()
+        obs_action_layout.addWidget(QLabel("OBS Action:"))
+        self.obs_action_combo = QComboBox()
+        self.obs_action_combo.addItems(["show", "hide", "toggle", "show_temp"])
+        obs_action_layout.addWidget(self.obs_action_combo)
+        obs_fields_layout.addLayout(obs_action_layout)
+
+        obs_scene_layout = QHBoxLayout()
+        obs_scene_layout.addWidget(QLabel("Scene:"))
+        self.obs_scene_input = QLineEdit()
+        self.obs_scene_input.setPlaceholderText("e.g., 'Main Scene'")
+        obs_scene_layout.addWidget(self.obs_scene_input)
+        obs_fields_layout.addLayout(obs_scene_layout)
+
+        obs_source_layout = QHBoxLayout()
+        obs_source_layout.addWidget(QLabel("Source:"))
+        self.obs_source_input = QLineEdit()
+        self.obs_source_input.setPlaceholderText("e.g., 'Follow Alert'")
+        obs_source_layout.addWidget(self.obs_source_input)
+        obs_fields_layout.addLayout(obs_source_layout)
+
+        self.obs_fields_widget.setVisible(False)  # Hidden by default
+        add_layout.addWidget(self.obs_fields_widget)
 
         # Row 3: Duration and cooldown
         row3 = QHBoxLayout()
@@ -354,6 +390,189 @@ class MainWindow(QMainWindow):
 
         return widget
 
+    def create_obs_tab(self) -> QWidget:
+        """Create OBS/TikTok Live Studio configuration tab"""
+
+        widget = QWidget()
+        layout = QVBoxLayout()
+        widget.setLayout(layout)
+
+        # Connection group
+        connection_group = QGroupBox("OBS WebSocket Connection")
+        connection_layout = QVBoxLayout()
+        connection_group.setLayout(connection_layout)
+
+        # Host input
+        host_layout = QHBoxLayout()
+        host_layout.addWidget(QLabel("Host:"))
+        self.obs_host_input = QLineEdit()
+        self.obs_host_input.setText("localhost")
+        self.obs_host_input.setPlaceholderText("localhost")
+        host_layout.addWidget(self.obs_host_input)
+        connection_layout.addLayout(host_layout)
+
+        # Port input
+        port_layout = QHBoxLayout()
+        port_layout.addWidget(QLabel("Port:"))
+        self.obs_port_input = QLineEdit()
+        self.obs_port_input.setText("4455")
+        self.obs_port_input.setPlaceholderText("4455")
+        port_layout.addWidget(self.obs_port_input)
+        connection_layout.addLayout(port_layout)
+
+        # Password input
+        password_layout = QHBoxLayout()
+        password_layout.addWidget(QLabel("Password:"))
+        self.obs_password_input = QLineEdit()
+        self.obs_password_input.setPlaceholderText("Leave empty if no password")
+        self.obs_password_input.setEchoMode(QLineEdit.EchoMode.Password)
+        password_layout.addWidget(self.obs_password_input)
+        connection_layout.addLayout(password_layout)
+
+        # Connect/Disconnect buttons
+        obs_button_layout = QHBoxLayout()
+        self.obs_connect_btn = QPushButton("Connect to OBS")
+        self.obs_connect_btn.clicked.connect(self.connect_obs)
+        self.obs_connect_btn.setStyleSheet("QPushButton { background-color: #2196F3; color: white; padding: 10px; font-weight: bold; }")
+        obs_button_layout.addWidget(self.obs_connect_btn)
+
+        self.obs_disconnect_btn = QPushButton("Disconnect")
+        self.obs_disconnect_btn.clicked.connect(self.disconnect_obs)
+        self.obs_disconnect_btn.setEnabled(False)
+        self.obs_disconnect_btn.setStyleSheet("QPushButton { background-color: #f44336; color: white; padding: 10px; font-weight: bold; }")
+        obs_button_layout.addWidget(self.obs_disconnect_btn)
+
+        connection_layout.addLayout(obs_button_layout)
+
+        # Status
+        self.obs_status_label = QLabel("Status: Not Connected")
+        self.obs_status_label.setStyleSheet("QLabel { color: #f44336; font-weight: bold; padding: 10px; }")
+        connection_layout.addWidget(self.obs_status_label)
+
+        layout.addWidget(connection_group)
+
+        # Scene/Source Browser
+        browser_group = QGroupBox("Scene & Source Browser")
+        browser_layout = QVBoxLayout()
+        browser_group.setLayout(browser_layout)
+
+        browser_info = QLabel("Connect to OBS first to browse scenes and sources")
+        browser_info.setStyleSheet("QLabel { color: #888; font-style: italic; }")
+        browser_layout.addWidget(browser_info)
+
+        # Refresh button
+        refresh_btn = QPushButton("Refresh Scenes & Sources")
+        refresh_btn.clicked.connect(self.refresh_obs_scenes)
+        browser_layout.addWidget(refresh_btn)
+
+        # Scenes list
+        scenes_layout = QHBoxLayout()
+        scenes_layout.addWidget(QLabel("Scenes:"))
+        self.obs_scenes_list = QTextEdit()
+        self.obs_scenes_list.setReadOnly(True)
+        self.obs_scenes_list.setMaximumHeight(100)
+        scenes_layout.addWidget(self.obs_scenes_list)
+        browser_layout.addLayout(scenes_layout)
+
+        # Sources list
+        sources_layout = QVBoxLayout()
+        sources_layout.addWidget(QLabel("Sources in selected scene:"))
+
+        scene_select_layout = QHBoxLayout()
+        scene_select_layout.addWidget(QLabel("Scene:"))
+        self.obs_scene_combo = QComboBox()
+        self.obs_scene_combo.currentTextChanged.connect(self.load_scene_sources)
+        scene_select_layout.addWidget(self.obs_scene_combo)
+        sources_layout.addLayout(scene_select_layout)
+
+        self.obs_sources_list = QTextEdit()
+        self.obs_sources_list.setReadOnly(True)
+        self.obs_sources_list.setMaximumHeight(150)
+        sources_layout.addWidget(self.obs_sources_list)
+        browser_layout.addLayout(sources_layout)
+
+        layout.addWidget(browser_group)
+
+        # Info
+        info_group = QGroupBox("Quick Guide")
+        info_layout = QVBoxLayout()
+        info_group.setLayout(info_layout)
+
+        info_text = QLabel(
+            "1. Enable OBS WebSocket in OBS Studio or TikTok Live Studio\n"
+            "   (Tools → WebSocket Server Settings)\n"
+            "2. Enter connection details and click 'Connect to OBS'\n"
+            "3. Browse scenes and sources to find names for mappings\n"
+            "4. Go to 'Event Mappings' tab to add OBS actions\n\n"
+            "For detailed setup: See OBS_SETUP.md"
+        )
+        info_text.setWordWrap(True)
+        info_layout.addWidget(info_text)
+
+        layout.addWidget(info_group)
+
+        layout.addStretch()
+
+        return widget
+
+    def connect_obs(self):
+        """Connect to OBS WebSocket"""
+        host = self.obs_host_input.text().strip() or "localhost"
+        port = int(self.obs_port_input.text().strip() or "4455")
+        password = self.obs_password_input.text().strip()
+
+        self.obs_controller.host = host
+        self.obs_controller.port = port
+        self.obs_controller.password = password
+
+        if self.obs_controller.connect():
+            self.obs_status_label.setText("Status: Connected ✓")
+            self.obs_status_label.setStyleSheet("QLabel { color: #4CAF50; font-weight: bold; padding: 10px; }")
+            self.obs_connect_btn.setEnabled(False)
+            self.obs_disconnect_btn.setEnabled(True)
+            self.refresh_obs_scenes()
+            QMessageBox.information(self, "Success", "Connected to OBS successfully!")
+        else:
+            self.obs_status_label.setText("Status: Connection Failed")
+            self.obs_status_label.setStyleSheet("QLabel { color: #f44336; font-weight: bold; padding: 10px; }")
+            QMessageBox.critical(self, "Error", "Failed to connect to OBS. Make sure OBS WebSocket is enabled.")
+
+    def disconnect_obs(self):
+        """Disconnect from OBS WebSocket"""
+        self.obs_controller.disconnect()
+        self.obs_status_label.setText("Status: Not Connected")
+        self.obs_status_label.setStyleSheet("QLabel { color: #f44336; font-weight: bold; padding: 10px; }")
+        self.obs_connect_btn.setEnabled(True)
+        self.obs_disconnect_btn.setEnabled(False)
+        self.obs_scenes_list.clear()
+        self.obs_sources_list.clear()
+        self.obs_scene_combo.clear()
+
+    def refresh_obs_scenes(self):
+        """Refresh OBS scenes and sources"""
+        if not self.obs_controller.is_connected:
+            QMessageBox.warning(self, "Not Connected", "Please connect to OBS first")
+            return
+
+        scenes = self.obs_controller.get_scenes()
+        if scenes:
+            self.obs_scenes_list.setText("\n".join(scenes))
+            self.obs_scene_combo.clear()
+            self.obs_scene_combo.addItems(scenes)
+        else:
+            self.obs_scenes_list.setText("No scenes found")
+
+    def load_scene_sources(self, scene_name: str):
+        """Load sources for selected scene"""
+        if not self.obs_controller.is_connected or not scene_name:
+            return
+
+        sources = self.obs_controller.get_sources_in_scene(scene_name)
+        if sources:
+            self.obs_sources_list.setText("\n".join(sources))
+        else:
+            self.obs_sources_list.setText("No sources found in this scene")
+
     def load_config(self):
         """Load configuration and populate UI"""
 
@@ -380,6 +599,15 @@ class MainWindow(QMainWindow):
 
         QMessageBox.information(self, "Success", "Configuration saved successfully!")
 
+    def on_action_type_changed(self, action_type: str):
+        """Handle action type change"""
+        if action_type == 'obs':
+            self.obs_fields_widget.setVisible(True)
+            self.input_field.setVisible(False)
+        else:
+            self.obs_fields_widget.setVisible(False)
+            self.input_field.setVisible(True)
+
     def refresh_mappings_table(self):
         """Refresh the mappings table"""
 
@@ -391,8 +619,12 @@ class MainWindow(QMainWindow):
             self.mappings_table.setItem(i, 1, QTableWidgetItem(mapping.get('trigger', '')))
             self.mappings_table.setItem(i, 2, QTableWidgetItem(mapping.get('action', '')))
 
-            # Determine input field
-            input_val = mapping.get('key') or mapping.get('button') or mapping.get('joystick') or mapping.get('trigger_name') or ''
+            # Determine input field - for OBS show scene/source, otherwise show key/button
+            if mapping.get('action') == 'obs':
+                obs_info = f"{mapping.get('obs_action', '')} {mapping.get('obs_scene', '')}/{mapping.get('obs_source', '')}"
+                input_val = obs_info.strip()
+            else:
+                input_val = mapping.get('key') or mapping.get('button') or mapping.get('joystick') or mapping.get('trigger_name') or ''
             self.mappings_table.setItem(i, 3, QTableWidgetItem(str(input_val)))
 
             self.mappings_table.setItem(i, 4, QTableWidgetItem(str(mapping.get('duration', 0.1))))
@@ -405,16 +637,11 @@ class MainWindow(QMainWindow):
         event_type = self.event_type_combo.currentText()
         trigger = self.trigger_input.text().strip()
         action = self.action_combo.currentText()
-        input_val = self.input_field.text().strip()
         duration = self.duration_spin.value()
         cooldown = self.cooldown_spin.value()
 
         if not trigger and event_type == 'comment':
             QMessageBox.warning(self, "Error", "Please enter a trigger text for comment events")
-            return
-
-        if not input_val:
-            QMessageBox.warning(self, "Error", "Please enter an input (key or button)")
             return
 
         mapping_data = {
@@ -426,11 +653,33 @@ class MainWindow(QMainWindow):
             'enabled': True
         }
 
-        # Determine input type
-        if action == 'keyboard':
-            mapping_data['key'] = input_val
+        # Determine input type based on action
+        if action == 'obs':
+            # OBS action
+            obs_action = self.obs_action_combo.currentText()
+            obs_scene = self.obs_scene_input.text().strip()
+            obs_source = self.obs_source_input.text().strip()
+
+            if not obs_scene or not obs_source:
+                QMessageBox.warning(self, "Error", "Please enter both scene and source names for OBS actions")
+                return
+
+            mapping_data['obs_action'] = obs_action
+            mapping_data['obs_scene'] = obs_scene
+            mapping_data['obs_source'] = obs_source
+
         else:
-            mapping_data['button'] = input_val
+            # Keyboard or controller action
+            input_val = self.input_field.text().strip()
+
+            if not input_val:
+                QMessageBox.warning(self, "Error", "Please enter an input (key or button)")
+                return
+
+            if action == 'keyboard':
+                mapping_data['key'] = input_val
+            else:
+                mapping_data['button'] = input_val
 
         self.event_mapper.add_mapping(mapping_data)
         self.refresh_mappings_table()
@@ -438,6 +687,8 @@ class MainWindow(QMainWindow):
         # Clear inputs
         self.trigger_input.clear()
         self.input_field.clear()
+        self.obs_scene_input.clear()
+        self.obs_source_input.clear()
 
     def remove_mapping(self):
         """Remove selected mapping"""
